@@ -152,7 +152,8 @@ if ( pg_num_rows($res) ) {
         //don't overload the server
         $cycle_end = microtime(true);
         $cycle_time = $cycle_end - $cycle_end;
-        if ($cycle_time < 1) time_nanosleep(0, 500000000);
+        //sleep 0.1 sec
+        if ($cycle_time < 1) time_nanosleep(0, 100000000);
 
     } //while
 
