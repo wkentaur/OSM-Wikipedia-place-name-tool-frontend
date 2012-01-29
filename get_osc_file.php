@@ -117,8 +117,10 @@ if ( pg_num_rows($res) ) {
             $name_is_set = false;
             foreach ($xml->xpath($xp_tag_str) as $tag) {    //xpath('/osm/node/tag')
                 if (strcmp($tag['k'], $name_lang) == 0) {
-                    $name_is_set = true;
-                    break;
+                    if (strcmp($tag['v'], $name_in_wp) == 0) {
+                        $name_is_set = true;
+                        break;
+                    }
                 }
             }
 
