@@ -170,7 +170,7 @@ if ($lang) {
         $name_field = "tags->'name:" . $lang . "' AS ". $lang;
         $osm_table = $row['osm_table'];
         $osm_id = $row['osm_id'];
-        $osm_sql = "SELECT  name, $name_field
+        $osm_sql = "SELECT  name, tags->'route_name' AS route_name, $name_field
         FROM $osm_table 
         WHERE (osm_id = '$osm_id')
         LIMIT 1";
@@ -182,7 +182,12 @@ if ($lang) {
         if ( pg_num_rows($osm_res) ) {
             while($osm_row = pg_fetch_assoc($osm_res))
             {
-                print "<TD>". $osm_row['name'] ."</TD>\n";
+                if ($osm_row['name']) {
+                    $osm_name = $osm_row['name'];
+                } else {
+                    $osm_name = $osm_row['route_name'];
+                }            
+                print "<TD>". $osm_name ."</TD>\n";
                 print "<TD>". $osm_row["$lang"] ."</TD>\n";
                 if (strcmp($name_in_wp, $osm_row["$lang"]) == 0) {
                     $lang_status = $st_lang['IS_IN_OSM'];
