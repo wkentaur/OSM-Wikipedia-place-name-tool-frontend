@@ -174,7 +174,9 @@ if ($lang) {
         FROM $osm_table 
         WHERE (osm_id = '$osm_id')
         LIMIT 1";
-        //FIXME: osm_id not really unique?
+
+        $name_in_wp = strip_wp_title($row['ll_title'], $lang);
+        
         $osm_res = pg_query($osm_sql);
         if($e = pg_last_error()) trigger_error($e, E_USER_ERROR);
         if ( pg_num_rows($osm_res) ) {
@@ -182,12 +184,19 @@ if ($lang) {
             {
                 print "<TD>". $osm_row['name'] ."</TD>\n";
                 print "<TD>". $osm_row["$lang"] ."</TD>\n";
+                if (strcmp($name_in_wp, $osm_row["$lang"]) == 0) {
+                    $lang_status = $st_lang['IS_IN_OSM'];
+                    $update_sql = "UPDATE ". WP_LANG_TABLE . " SET status = '$lang_status'
+                    WHERE ll_from_lang = '". pg_escape_string($row['wiki_lang']) ."' AND ll_from = '". $row['wiki_page_id'] ."' AND ll_lang = '$esc_lang'";
+                    $update_res = pg_query($update_sql);
+                    if($e = pg_last_error()) trigger_error($e, E_USER_ERROR);                
+                }
             }
         } else {
             print "<TD></TD>\n";
             print "<TD></TD>\n";
         }
-        print "<TD><strong>". strip_wp_title($row['ll_title'], $lang) ."</strong></TD>\n";
+        print "<TD><strong>". $name_in_wp ."</strong></TD>\n";
         //print "<TD>". $row['status'] ."</TD>";
         if ($row['status'] == $st_lang['TO_CHECK'] OR $row['status'] == $st_lang['TO_UPDATE']) {
     
