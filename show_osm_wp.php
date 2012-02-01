@@ -74,7 +74,6 @@ if ($lang) {
     } else {
         die('Invalid $lang value!');
     }
-    echo "domain name is: {$matches[0]}\n";
     $marked_arr = array();
     
     if ( isset($_SESSION['marked_all'])  and isset($_SESSION['marked_all']["$lang"])) {
