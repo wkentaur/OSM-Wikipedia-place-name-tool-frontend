@@ -17,6 +17,7 @@ function h($s) { return htmlspecialchars($s); }
 //main
 $wiki_site = '.wikipedia.org/wiki/';
 
+session_start();
 header('Content-Type: text/html; charset=utf-8');
 
 $lang = isset($_GET['lang']) ? $_GET['lang'] : null;
@@ -69,29 +70,35 @@ if($e = pg_last_error()) trigger_error($e, E_USER_ERROR);
 
 if ($lang) {
 
-    $esc_lang = pg_escape_string($lang);
+    $marked_arr = array();
+    
+    if ( isset($_SESSION['marked']) ) {
+        $marked_arr = $_SESSION['marked'];
+    }
 
   
     if(isset($_GET['action'])) switch($_GET['action']) {
         case 'mark-ok':
-            $lang_status = $st_lang['TO_UPDATE'];
+            $mark_ok = $_GET['ll_from_lang'] . '|' . $_GET['ll_from'] . '|' . $lang;
+            $marked_arr[] = $mark_ok;
+            break;
         
         case 'mark-nok':
-            if(!isset($lang_status)) $lang_status = $st_lang['TO_CHECK'];
-		
-            $update_sql = "UPDATE ". WP_LANG_TABLE . " SET status = '$lang_status'
-            WHERE ll_from_lang = '". pg_escape_string($_GET['ll_from_lang']) ."' AND ll_from = '". intval($_GET['ll_from']) ."' AND ll_lang = '$esc_lang'";
-            $update_res = pg_query($update_sql);
-            if($e = pg_last_error()) trigger_error($e, E_USER_ERROR);
-
+            $remove_mark = $_GET['ll_from_lang'] . '|' . $_GET['ll_from'] . '|' . $lang;
+            if (in_array($remove_mark, $marked_arr)) {
+                foreach($marked_arr as $key => $value) {
+                    if ($value == $remove_mark) unset($marked_arr[$key]);
+                }            
+            }
             break;
     }
+    $esc_lang = pg_escape_string($lang);
 
     $sql_from_where = " FROM ". OSM_WP_TABLE .", ". WP_LANG_TABLE . " 
    WHERE (". OSM_WP_TABLE .".wiki_lang = ". WP_LANG_TABLE . ".ll_from_lang AND 
          ". OSM_WP_TABLE .".wiki_page_id = ". WP_LANG_TABLE . ".ll_from AND
          ". WP_LANG_TABLE . ".ll_lang = '$esc_lang' AND
-         (". WP_LANG_TABLE . ".status = ". $st_lang['TO_CHECK'] ." OR ". WP_LANG_TABLE . ".status = ". $st_lang['TO_UPDATE'] .") ) ";
+         ". WP_LANG_TABLE . ".status = ". $st_lang['TO_CHECK'] ." ) ";
         
     $sql_total = "SELECT count(*) " . $sql_from_where;
     $sql_lim = "SELECT osm_table, osm_id, osm_wikipedia, wiki_lang, wiki_art_title, wiki_page_id, ". WP_LANG_TABLE . ".status, ll_title " . $sql_from_where . " LIMIT 300";
@@ -113,11 +120,15 @@ if ($lang) {
 
     if ( preg_match('@^(.+)/@i',
        $_SERVER['REQUEST_URI'], $matches) ) {
-       $download_uri = $matches[1] . '/'. DOWNLOAD_OSC_FILE . '?lang='. $lang;
+       $download_uri = $matches[1] . '/'. DOWNLOAD_OSC_FILE . '?lang='. $lang . '&amp;'. h(SID);
     }
 
     $download_osc = '<P>1) Mark suitable names OK.</P>';
-    $download_osc .= '<P>2) <A HREF="'. $download_uri .'">Download osmChange (.osc) file with marked name:' . $lang . ' tags.</A></P>';
+    $download_osc .= '<P>2) <A HREF="'. $download_uri .'">Download osmChange (.osc) file with marked name:' . $lang . ' tags.</A> ';
+    if ( count($marked_arr) ) {
+        $download_osc .= count($marked_arr) . ' names marked.';
+    }
+    $download_osc .= '</P>';
     $download_osc .= '<P>3) After that open .osc file in <A HREF="http://josm.openstreetmap.de/">JOSM</A> and upload changes to Openstreetmap.</P>';
 
     print $download_osc;
@@ -156,14 +167,13 @@ if ($lang) {
             }
         } //if
         $anchor = $anchor . abs($row['osm_id']);    
+        $lang_row_key = $row['wiki_lang'] . '|' . $row['wiki_page_id'] . '|' . $lang;
 
         $wiki_url = 'http://'. $row['wiki_lang'] . $wiki_site . $row['wiki_art_title'];
-        $ok = ($row['status'] == $st_lang['TO_UPDATE']);
+        $ok = in_array($lang_row_key, $marked_arr);
         $row_class = $ok ? 'ok' : 'nok';
         print '<TR id="'. $anchor .'" class="' . $row_class . '">';
-//      print "<TD>". $row['osm_table'] ."</TD>";
         print '<TD><A HREF="'. $osm_url . abs($row['osm_id']) . '">'. $row['osm_id'] ."</A></TD>\n";
-//      print "<TD>". $row['osm_wikipedia'] ."</TD>";
         print "<TD>". $row['wiki_lang'] ."</TD>\n";
         print '<TD> <A HREF="'. $wiki_url . '">' . $row['wiki_art_title'] ."</A> </TD>\n";
 
@@ -203,29 +213,29 @@ if ($lang) {
         }
         print "<TD><strong>". $name_in_wp ."</strong></TD>\n";
         //print "<TD>". $row['status'] ."</TD>";
-        if ($row['status'] == $st_lang['TO_CHECK'] OR $row['status'] == $st_lang['TO_UPDATE']) {
     
-        //FIXME: get rid of onClick
+        //FIXME: get rid of onClick        
 ?>
     <TD>
-      <a href="?lang=<?=h($lang)?>&amp;ll_from_lang=<?=h($row['wiki_lang'])?>&amp;ll_from=<?=h($row['wiki_page_id'])?>&amp;action=mark-<?=$ok ? 'nok' : 'ok'?>#<?=h($anchor)?>" onclick="return mark(this, <?=h($osm_id)?>, '<?=$ok ? 'nok' : 'ok'?>')">mark <?=$ok ? 'not OK' : 'OK'?></a>
+      <a href="?lang=<?=h($lang)?>&amp;ll_from_lang=<?=h($row['wiki_lang'])?>&amp;ll_from=<?=h($row['wiki_page_id'])?>&amp;action=mark-<?=$ok ? 'nok' : 'ok'?>&amp;<?=h(SID)?>#<?=h($anchor)?>" onclick="return mark(this, <?=h($osm_id)?>, '<?=$ok ? 'nok' : 'ok'?>')">mark <?=$ok ? 'not OK' : 'OK'?></a>
     </TD>      
 <?      
-        } //if
         print "</TR>\n";
     } //while
 
     print "</TABLE>\n";
 
     print $download_osc;
-
+    //write back to session array
+    $_SESSION['marked'] = $marked_arr;
+    
 } else {
     print "<P>Semi-automatically add new name:XX values to Openstreetmap using wikipedia links from OSM and interlanguage links from Wikipedias.</P>";
     $sql = "SELECT ll_lang, count(*)
     FROM ". OSM_WP_TABLE .", ". WP_LANG_TABLE . " 
    WHERE (". OSM_WP_TABLE .".wiki_lang = ". WP_LANG_TABLE . ".ll_from_lang AND 
          ". OSM_WP_TABLE .".wiki_page_id = ". WP_LANG_TABLE . ".ll_from AND
-         (". WP_LANG_TABLE . ".status = ". $st_lang['TO_CHECK'] ." OR ". WP_LANG_TABLE . ".status = ". $st_lang['TO_UPDATE'] .") )
+         ". WP_LANG_TABLE . ".status = ". $st_lang['TO_CHECK'] ." )
     GROUP BY ll_lang
     ORDER BY ll_lang";
 
