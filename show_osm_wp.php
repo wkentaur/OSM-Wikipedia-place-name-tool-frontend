@@ -69,11 +69,16 @@ $pg = pg_connect('host='. OSM_HOST .' dbname='. OSM_DB);
 if($e = pg_last_error()) trigger_error($e, E_USER_ERROR);
 
 if ($lang) {
-
+    if ( preg_match('/[\w\-]+/', $lang, $matches) ) {
+        $lang = $matches[0];
+    } else {
+        die('Invalid $lang value!');
+    }
+    echo "domain name is: {$matches[0]}\n";
     $marked_arr = array();
     
-    if ( isset($_SESSION['marked']) ) {
-        $marked_arr = $_SESSION['marked'];
+    if ( isset($_SESSION['marked_all'])  and isset($_SESSION['marked_all']["$lang"])) {
+        $marked_arr = $_SESSION['marked_all']["$lang"];
     }
 
   
@@ -228,7 +233,7 @@ if ($lang) {
 
     print $download_osc;
     //write back to session array
-    $_SESSION['marked'] = $marked_arr;
+    $_SESSION['marked_all']["$lang"] = $marked_arr;
     
 } else {
     print "<P>Semi-automatically add new name:XX values to Openstreetmap using wikipedia links from OSM and interlanguage links from Wikipedias.</P>";

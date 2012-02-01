@@ -27,8 +27,15 @@ if (!$lang) {
     die("lang parameter not set!");
 }
 
-if ( isset($_SESSION['marked']) and count($_SESSION['marked']) ) {
-    $marked_arr = $_SESSION['marked'];
+if ( preg_match('/[\w\-]+/', $lang, $matches) ) {
+    $lang = $matches[0];
+} else {
+    die('Invalid $lang value!');
+}
+
+
+if ( isset($_SESSION['marked_all']) and isset($_SESSION['marked_all']["$lang"]) and count($_SESSION['marked_all']["$lang"]) ) {
+    $marked_arr = $_SESSION['marked_all']["$lang"];
 
     $osc_generator = 'OSM-Wikipedia bot';
     $osc_version = '0.6';
@@ -181,7 +188,7 @@ if ( isset($_SESSION['marked']) and count($_SESSION['marked']) ) {
         $log->lwrite('Added '. $update_count . ' tags to osm.');
     }
 
-    $_SESSION['marked'] = $marked_arr;
+    $_SESSION['marked_all']["$lang"] = $marked_arr;
 } else {
     print "No marked name:". $lang ." tags found.";
 } //if-else
