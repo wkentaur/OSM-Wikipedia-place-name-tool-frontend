@@ -8,6 +8,8 @@ error_reporting(E_ALL);
 ini_set('display_errors', true);
 ini_set('html_errors', false);
 
+$time_start = microtime(true);
+
 require('/home/kentaur/php/osm_wp/common.php');
 
 // functions
@@ -134,7 +136,7 @@ if ($lang) {
         $download_osc .= count($marked_arr) . ' names marked.';
     }
     $download_osc .= '</P>';
-    $download_osc .= '<P>3) After that open .osc file in <A HREF="http://josm.openstreetmap.de/">JOSM</A> and upload changes to Openstreetmap.</P>';
+    $download_osc .= '<P>3) After that open .osc file in <A HREF="http://josm.openstreetmap.de/">JOSM</A> and upload changes to Openstreetmap.</P>' . "\n";
 
     print $download_osc;
 
@@ -204,7 +206,7 @@ if ($lang) {
                 }            
                 print "<TD>". $osm_name ."</TD>\n";
                 print "<TD>". $osm_row["$lang"] ."</TD>\n";
-                if (strcmp($name_in_wp, $osm_row["$lang"]) == 0) {
+                if ( $osm_row["$lang"] and (strcmp($name_in_wp, $osm_row["$lang"]) == 0) ) {
                     $lang_status = $st_lang['IS_IN_OSM'];
                     $update_sql = "UPDATE ". WP_LANG_TABLE . " SET status = '$lang_status'
                     WHERE ll_from_lang = '". pg_escape_string($row['wiki_lang']) ."' AND ll_from = '". $row['wiki_page_id'] ."' AND ll_lang = '$esc_lang'";
@@ -258,5 +260,8 @@ if ($lang) {
 
 } //if-else $lang
 
+$time_end = microtime(true);
+$time = $time_end - $time_start;
+print "<!-- Page generated in $time seconds.-->\n";
 print "</body>\n</html>";
 ?>
