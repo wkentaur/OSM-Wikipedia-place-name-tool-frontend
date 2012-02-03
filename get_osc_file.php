@@ -123,12 +123,15 @@ if ( isset($_SESSION['marked_all']) and isset($_SESSION['marked_all']["$lang"]) 
 
                     $name_lang = 'name:'. $lang;
                     $name_is_set = false;
+                    $wikipedia_is_set = false;
                     foreach ($xml->xpath($xp_tag_str) as $tag) {    //xpath('/osm/node/tag')
                         if (strcmp($tag['k'], $name_lang) == 0) {
                             if (strcmp($tag['v'], $name_in_wp) == 0) {
                                 $name_is_set = true;
                                 break;
                             }
+                        } elseif (!$wikipedia_is_set and strcmp($tag['k'], 'wikipedia') == 0) {
+                            $wikipedia_is_set = true;
                         }
                     }
 
@@ -140,22 +143,26 @@ if ( isset($_SESSION['marked_all']) and isset($_SESSION['marked_all']["$lang"]) 
                         if($e = pg_last_error()) die($e);
                         unset($marked_arr[$marked_key]);
                     } else {
-                        $tag = $osm_obj->addChild('tag');   
-                        $tag->addAttribute('k', 'name:'. $lang);
-                        $tag->addAttribute('v', $name_in_wp);
+                        if ($wikipedia_is_set) {
+                            $tag = $osm_obj->addChild('tag');   
+                            $tag->addAttribute('k', 'name:'. $lang);
+                            $tag->addAttribute('v', $name_in_wp);
 
-                        /* Render the structure back to XML */
-                        $toupdate = $osm_obj->asXML();
+                            /* Render the structure back to XML */
+                            $toupdate = $osm_obj->asXML();
 
-                        if ( $toupdate ) {
-                            $xml_out_text .= $toupdate . "\n";            
-                            $update_count++;
-                            unset($marked_arr[$marked_key]);
-                            $lang_status = $st_lang['UPDATED'];
-                            $update_sql = "UPDATE ". WP_LANG_TABLE . " SET status = '$lang_status'
-                            WHERE ll_from_lang = '". pg_escape_string($ll_from_lang) ."' AND ll_from = '". intval($ll_from) ."' AND ll_lang = '". pg_escape_string($lang) ."'";
-                            $update_res = pg_query($update_sql);
-                            if($e = pg_last_error()) die($e);
+                            if ( $toupdate ) {
+                                $xml_out_text .= $toupdate . "\n";            
+                                $update_count++;
+                                unset($marked_arr[$marked_key]);
+                                $lang_status = $st_lang['UPDATED'];
+                                $update_sql = "UPDATE ". WP_LANG_TABLE . " SET status = '$lang_status'
+                                WHERE ll_from_lang = '". pg_escape_string($ll_from_lang) ."' AND ll_from = '". intval($ll_from) ."' AND ll_lang = '". pg_escape_string($lang) ."'";
+                                $update_res = pg_query($update_sql);
+                                if($e = pg_last_error()) die($e);
+                            }
+                        } else {
+                            $log->lwrite('Error: no wikipedia tag found on saving: ' . $type . $osm_id);  
                         }
                     } //if-else
                 } // if ($toupdate)
