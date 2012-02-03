@@ -282,6 +282,9 @@ if ($lang) {
 
 } //if-else $lang
 
+print "<HR/>";
+print '<SMALL>Powered by <A HREF="/">Toolserver</A></SMALL>';
+
 $time_end = microtime(true);
 $time = $time_end - $time_start;
 print "<!-- Page generated in $time seconds.-->\n";
