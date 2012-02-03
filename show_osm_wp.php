@@ -24,6 +24,15 @@ header('Content-Type: text/html; charset=utf-8');
 
 $lang = isset($_GET['lang']) ? $_GET['lang'] : null;
 
+
+// open psql connection
+$pg = pg_connect('host='. OSM_HOST .' dbname='. OSM_DB);
+ 
+// check for connection error
+if($e = pg_last_error()) trigger_error($e, E_USER_ERROR);
+
+if ($lang) {
+
 ?>
 <html>
 	<head>
@@ -57,20 +66,40 @@ $lang = isset($_GET['lang']) ? $_GET['lang'] : null;
 				border: 1px solid #808080;
 				background: #E0E0E0;
 				color: black;
+                white-space: nowrap;
 			}
 			
 		</style>
+        <script type="text/javascript" language="javascript" src="ajaxrequest.js"></script>        
+        <script language="javascript" type="text/javascript">
+            function returnObjById( id ) 
+            { 
+                if (document.getElementById) 
+                    var returnVar = document.getElementById(id); 
+                else if (document.all) 
+                    var returnVar = document.all[id]; 
+                else if (document.layers) 
+                    var returnVar = document.layers[id]; 
+                return returnVar; 
+            }        
+            
+            function mark(link_obj, row_id, ll_from_lang, ll_from, lang) {
+                var row_obj = returnObjById( row_id );
+                var row_class = (row_obj.className=="ok")?"nok":"ok";
+                row_obj.className = row_class;
+                if (row_obj.className=="ok") {
+                    link_obj.innerHTML = 'unmark';
+                    MyAjaxRequest('marked_count','mark_name.php?ll_from_lang='+ ll_from_lang +'&ll_from='+ ll_from +'&lang=' + lang + '&action=mark-ok&<?=h(SID)?>');
+                } else {
+                    link_obj.innerHTML = 'mark OK';
+                    MyAjaxRequest('marked_count','mark_name.php?ll_from_lang='+ ll_from_lang +'&ll_from='+ ll_from +'&lang=' + lang + '&action=mark-nok&<?=h(SID)?>');
+                }
+            }
+        </script>
 	</head>
-    <body>
+    <body>    
 <?
 
-// open psql connection
-$pg = pg_connect('host='. OSM_HOST .' dbname='. OSM_DB);
- 
-// check for connection error
-if($e = pg_last_error()) trigger_error($e, E_USER_ERROR);
-
-if ($lang) {
     if ( preg_match('/[\w\-]+/', $lang, $matches) ) {
         $lang = $matches[0];
     } else {
@@ -83,21 +112,6 @@ if ($lang) {
     }
 
   
-    if(isset($_GET['action'])) switch($_GET['action']) {
-        case 'mark-ok':
-            $mark_ok = $_GET['ll_from_lang'] . '|' . $_GET['ll_from'] . '|' . $lang;
-            $marked_arr[] = $mark_ok;
-            break;
-        
-        case 'mark-nok':
-            $remove_mark = $_GET['ll_from_lang'] . '|' . $_GET['ll_from'] . '|' . $lang;
-            if (in_array($remove_mark, $marked_arr)) {
-                foreach($marked_arr as $key => $value) {
-                    if ($value == $remove_mark) unset($marked_arr[$key]);
-                }            
-            }
-            break;
-    }
     $esc_lang = pg_escape_string($lang);
 
     $sql_from_where = " FROM ". OSM_WP_TABLE .", ". WP_LANG_TABLE . " 
@@ -131,14 +145,15 @@ if ($lang) {
     }
 
     $download_osc = '<P>1) Mark suitable names OK.</P>';
-    $download_osc .= '<P>2) <A HREF="'. $download_uri .'">Download osmChange (.osc) file with marked name:' . $lang . ' tags.</A> ';
-    if ( count($marked_arr) ) {
-        $download_osc .= count($marked_arr) . ' names marked.';
-    }
-    $download_osc .= '</P>';
+    $download_osc .= '<P>2) <A HREF="'. $download_uri .'">Download osmChange (.osc) file with marked name:' . $lang . ' tags.</A>';
+    $download_osc .= '</P> ';
     $download_osc .= '<P>3) After that open .osc file in <A HREF="http://josm.openstreetmap.de/">JOSM</A> and upload changes to Openstreetmap.</P>' . "\n";
 
+    print '<TABLE><TR><TD>';
     print $download_osc;
+    print '</TD><TD>';
+    print '<P><span id="marked_count">'. count( $marked_arr ) .'</span> names marked</P>';
+    print '</TD></TR></TABLE><BR/>';
 
     print "<TABLE>\n";
     print "<TR>
@@ -189,7 +204,7 @@ if ($lang) {
         $osm_id = $row['osm_id'];
         $osm_sql = "SELECT  name, tags->'route_name' AS route_name, $name_field
         FROM $osm_table 
-        WHERE (osm_id = '$osm_id')
+        WHERE (osm_id = '". pg_escape_string($osm_id) ."')
         LIMIT 1";
 
         $name_in_wp = strip_wp_title($row['ll_title'], $lang);
@@ -221,10 +236,9 @@ if ($lang) {
         print "<TD><strong>". $name_in_wp ."</strong></TD>\n";
         //print "<TD>". $row['status'] ."</TD>";
     
-        //FIXME: get rid of onClick        
 ?>
-    <TD>
-      <a href="?lang=<?=h($lang)?>&amp;ll_from_lang=<?=h($row['wiki_lang'])?>&amp;ll_from=<?=h($row['wiki_page_id'])?>&amp;action=mark-<?=$ok ? 'nok' : 'ok'?>&amp;<?=h(SID)?>#<?=h($anchor)?>" onclick="return mark(this, <?=h($osm_id)?>, '<?=$ok ? 'nok' : 'ok'?>')">mark <?=$ok ? 'not OK' : 'OK'?></a>
+    <TD class="action">
+      <a href="javascript:void(0);" onclick="return mark(this, '<?=h($anchor)?>', '<?=h($row['wiki_lang'])?>', '<?=h($row['wiki_page_id'])?>', '<?=h($lang)?>')"><?=$ok ? 'unmark' : 'mark OK'?></a>
     </TD>      
 <?      
         print "</TR>\n";
@@ -233,10 +247,18 @@ if ($lang) {
     print "</TABLE>\n";
 
     print $download_osc;
+
     //write back to session array
     $_SESSION['marked_all']["$lang"] = $marked_arr;
     
-} else {
+} else {           //all languages
+?>
+<html>
+    <head>
+        <title>Semi-automatically add new name:XX values to Openstreetmap</title>
+    </head>
+    <body>
+<?
     print "<P>Semi-automatically add new name:XX values to Openstreetmap using wikipedia links from OSM and interlanguage links from Wikipedias.</P>";
     $sql = "SELECT ll_lang, count(*)
     FROM ". OSM_WP_TABLE .", ". WP_LANG_TABLE . " 
