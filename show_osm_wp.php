@@ -137,7 +137,7 @@ if ($lang) {
     $showing_rows = pg_num_rows($res);
 
     print "<P>Showing $showing_rows from $total_rows for $lang. ";
-    print '<A HREF ="'. $_SERVER['PHP_SELF'] . '">Back to all languages.</A></P>';
+    print '<A HREF ="'. $_SERVER['PHP_SELF'] . '?' . SID . '">Back to all languages.</A></P>';
 
     if ( preg_match('@^(.+)/@i',
        $_SERVER['REQUEST_URI'], $matches) ) {
