@@ -275,7 +275,7 @@ if ($lang) {
 
     print "<UL>\n";
     while ($row = pg_fetch_assoc($res)) {
-        $lang_uri = $_SERVER['PHP_SELF'] . '?lang=' . $row['ll_lang'];
+        $lang_uri = $_SERVER['PHP_SELF'] . '?lang=' . $row['ll_lang'] . '&' . h(SID);
         print '<LI><A HREF="'. $lang_uri .'">'. $row['ll_lang'] . " -- " . $row['count'] . " proposed name:". $row['ll_lang'] . " values</A></LI>\n";
     }
     print "</UL>\n";
