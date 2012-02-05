@@ -224,7 +224,7 @@ if ($lang) {
                 if ( $osm_row["$lang"] and (strcmp($name_in_wp, $osm_row["$lang"]) == 0) ) {
                     $lang_status = $st_lang['IS_IN_OSM'];
                     $update_sql = "UPDATE ". WP_LANG_TABLE . " SET status = '$lang_status'
-                    WHERE ll_from_lang = '". pg_escape_string($row['wiki_lang']) ."' AND ll_from = '". $row['wiki_page_id'] ."' AND ll_lang = '$esc_lang'";
+                    WHERE ll_from_lang = '". pg_escape_string($row['wiki_lang']) ."' AND ll_from = '". intval( $row['wiki_page_id'] ) ."' AND ll_lang = '$esc_lang'";
                     $update_res = pg_query($update_sql);
                     if($e = pg_last_error()) trigger_error($e, E_USER_ERROR);                
                 }
