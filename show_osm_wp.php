@@ -249,7 +249,7 @@ if ($lang) {
     print $download_osc;
 
     //write back to session array
-    $_SESSION['marked_all']["$lang"] = $marked_arr;
+    //$_SESSION['marked_all']["$lang"] = $marked_arr;
     
 } else {           //all languages
 ?>
