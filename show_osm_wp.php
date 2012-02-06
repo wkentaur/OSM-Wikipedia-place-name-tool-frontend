@@ -255,7 +255,7 @@ if ($lang) {
 ?>
 <html>
     <head>
-        <title>Semi-automatically add new name:XX values to Openstreetmap</title>
+        <title>OSM-Wikipedia place name tool</title>
     </head>
     <body>
 <?
