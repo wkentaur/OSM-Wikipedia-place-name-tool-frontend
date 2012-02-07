@@ -20,6 +20,7 @@ function h($s) { return htmlspecialchars($s); }
 $wiki_site = '.wikipedia.org/wiki/';
 
 session_start();
+register_shutdown_function('shutdown'); 
 header('Content-Type: text/html; charset=utf-8');
 
 $lang = isset($_GET['lang']) ? $_GET['lang'] : null;
