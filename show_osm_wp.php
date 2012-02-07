@@ -59,7 +59,10 @@ if ($lang) {
 			tr.ok td, tr.ok a {
 				color: white;
 			}
-			
+			tr.unlist {
+				display: none;
+			}
+            
 			td.action a {
 				padding: 0 2px;
 				margin-right: 2px;
@@ -96,6 +99,16 @@ if ($lang) {
                     MyAjaxRequest('marked_count','mark_name.php?ll_from_lang='+ ll_from_lang +'&ll_from='+ ll_from +'&lang=' + lang + '&action=mark-nok&<?=h(SID)?>');
                 }
             }
+            
+            function unlist(link_obj, row_id, ll_from_lang, ll_from, lang) {
+                var row_obj = returnObjById( row_id );
+                var row_class = (row_obj.className=="ok")?"ok":"unlist";
+                row_obj.className = row_class;
+                if (row_obj.className=="unlist") {
+                    link_obj.innerHTML = '--';
+                    MyAjaxRequest('unlist_count','unlist_name.php?ll_from_lang='+ ll_from_lang +'&ll_from='+ ll_from +'&lang=' + lang + '&action=unlist&<?=h(SID)?>');
+                }
+            }
         </script>
 	</head>
     <body>    
@@ -114,12 +127,16 @@ if ($lang) {
 
   
     $esc_lang = pg_escape_string($lang);
+    $sess_id = session_id();
 
     $sql_from_where = " FROM ". OSM_WP_TABLE .", ". WP_LANG_TABLE . " 
    WHERE (". OSM_WP_TABLE .".wiki_lang = ". WP_LANG_TABLE . ".ll_from_lang AND 
          ". OSM_WP_TABLE .".wiki_page_id = ". WP_LANG_TABLE . ".ll_from AND
          ". WP_LANG_TABLE . ".ll_lang = '$esc_lang' AND
-         ". WP_LANG_TABLE . ".status = ". $st_lang['TO_CHECK'] ." ) ";
+         ". WP_LANG_TABLE . ".status = ". $st_lang['TO_CHECK'] ." AND
+         NOT EXISTS (SELECT 1 FROM ". BLACKLIST_TABLE ." 
+                      WHERE bl_from_lang=". WP_LANG_TABLE . ".ll_from_lang AND bl_from=". WP_LANG_TABLE . ".ll_from AND bl_lang='$esc_lang' AND bl_session_id='". pg_escape_string($sess_id) ."' )
+         ) ";
         
     $sql_total = "SELECT count(*) " . $sql_from_where;
     $sql_lim = "SELECT osm_table, osm_id, osm_wikipedia, wiki_lang, wiki_art_title, wiki_page_id, ". WP_LANG_TABLE . ".status, ll_title " . $sql_from_where . " LIMIT 300";
@@ -138,7 +155,7 @@ if ($lang) {
     $showing_rows = pg_num_rows($res);
 
     print "<P>Showing $showing_rows from $total_rows for $lang. ";
-    print '<A HREF ="'. $_SERVER['PHP_SELF'] . '?' . SID . '">Back to all languages.</A></P>';
+    print '<A HREF ="'. $_SERVER['PHP_SELF'] . '?' . h(SID) . '">Back to all languages.</A></P>';
 
     if ( preg_match('@^(.+)/@i',
        $_SERVER['REQUEST_URI'], $matches) ) {
@@ -148,12 +165,14 @@ if ($lang) {
     $download_osc = '<P>1) Mark suitable names OK.</P>';
     $download_osc .= '<P>2) <A HREF="'. $download_uri .'">Download osmChange (.osc) file with marked name:' . $lang . ' tags.</A>';
     $download_osc .= '</P> ';
-    $download_osc .= '<P>3) After that open .osc file in <A HREF="http://josm.openstreetmap.de/">JOSM</A> and upload changes to Openstreetmap.</P>' . "\n";
+    $download_osc .= '<P>3) After that open .osc file in <A HREF="http://josm.openstreetmap.de/">JOSM</A> and upload changes to Openstreetmap.<BR/>
+    &nbsp;&nbsp;&nbsp;<A HREF="javascript:void(0);" onClick="window.location.reload()">Reload page</A> to fetch new rows.</P>' . "\n";
 
     print '<TABLE><TR><TD>';
     print $download_osc;
     print '</TD><TD>';
-    print '<P><span id="marked_count">'. count( $marked_arr ) .'</span> names marked</P>';
+    print '<P><span id="marked_count">'. count( $marked_arr ) .'</span> names marked';
+    print ' and <span id="unlist_count">?</span> unlisted.</P>';
     print '</TD></TR></TABLE><BR/>';
 
     print "<TABLE>\n";
@@ -164,7 +183,8 @@ if ($lang) {
   <TH>OSM name</TH>
   <TH>current name:$lang</TH>
   <TH>proposed name:$lang</TH>
-  <TH></TH>
+  <TH>mark OK</TH>
+  <TH>remove from list</TH>
 </TR>
     ";
 
@@ -240,7 +260,10 @@ if ($lang) {
 ?>
     <TD class="action">
       <a href="javascript:void(0);" onclick="return mark(this, '<?=h($anchor)?>', '<?=h($row['wiki_lang'])?>', '<?=h($row['wiki_page_id'])?>', '<?=h($lang)?>')"><?=$ok ? 'unmark' : 'mark OK'?></a>
-    </TD>      
+    </TD>
+    <TD class="action">
+      <a href="javascript:void(0);" onclick="return unlist(this, '<?=h($anchor)?>', '<?=h($row['wiki_lang'])?>', '<?=h($row['wiki_page_id'])?>', '<?=h($lang)?>')">unlist</a>
+    </TD>     
 <?      
         print "</TR>\n";
     } //while
