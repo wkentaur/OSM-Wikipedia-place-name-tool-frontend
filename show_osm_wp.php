@@ -105,7 +105,6 @@ if ($lang) {
                 var row_class = (row_obj.className=="ok")?"ok":"unlist";
                 row_obj.className = row_class;
                 if (row_obj.className=="unlist") {
-                    link_obj.innerHTML = '--';
                     MyAjaxRequest('unlist_count','unlist_name.php?ll_from_lang='+ ll_from_lang +'&ll_from='+ ll_from +'&lang=' + lang + '&action=unlist&<?=h(SID)?>');
                 }
             }
