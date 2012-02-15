@@ -19,7 +19,7 @@ require_once('/home/kentaur/php/osm_wp/phposm.class.php');
 //functions
 
 //update download statistics    
-function update_download_stats($in_lang, $in_count) {
+function update_download_stats($in_lang, $in_count, $pg) {
 
     $update_sql = "UPDATE ". DOWN_STATS_TABLE . " SET st_count = st_count + $1,
         st_modified = NOW()
@@ -217,7 +217,7 @@ if ( isset($_SESSION['marked_all']) and isset($_SESSION['marked_all']["$lang"]) 
 </osmChange>';  
         print $xml_out_text;
         $log->lwrite('Added '. $update_count . ' tags to osm.');
-        update_download_stats($lang, $update_count);
+        update_download_stats($lang, $update_count, $pg);
     }
 
     $_SESSION['marked_all']["$lang"] = $marked_arr;
