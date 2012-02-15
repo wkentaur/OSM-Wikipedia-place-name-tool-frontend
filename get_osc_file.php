@@ -16,6 +16,19 @@ require_once('/home/kentaur/php/osm_wp/phposm.class.php');
 
 //register_shutdown_function('shutdown'); 
 
+//functions
+
+//update download statistics    
+function update_download_stats($in_lang, $in_count) {
+    $update_sql = "UPDATE ". DOWN_STATS_TABLE . " SET st_count = st_count + ". $in_count .",
+        st_modified = NOW()
+        WHERE st_lang = '". pg_escape_string(in_lang) ."'";
+    $update_res = pg_query($update_sql);
+    if($e = pg_last_error()) die($e);
+
+    return;
+}
+
 //main
 session_start();
 
@@ -193,6 +206,7 @@ if ( isset($_SESSION['marked_all']) and isset($_SESSION['marked_all']["$lang"]) 
 </osmChange>';  
         print $xml_out_text;
         $log->lwrite('Added '. $update_count . ' tags to osm.');
+        update_download_stats($lang, $update_count);
     }
 
     $_SESSION['marked_all']["$lang"] = $marked_arr;
