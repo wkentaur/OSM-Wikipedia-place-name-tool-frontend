@@ -20,12 +20,23 @@ require_once('/home/kentaur/php/osm_wp/phposm.class.php');
 
 //update download statistics    
 function update_download_stats($in_lang, $in_count) {
-    $update_sql = "UPDATE ". DOWN_STATS_TABLE . " SET st_count = st_count + ". $in_count .",
-        st_modified = NOW()
-        WHERE st_lang = '". pg_escape_string($in_lang) ."'";
-    $update_res = pg_query($update_sql);
-    if($e = pg_last_error()) die($e);
 
+    $update_sql = "UPDATE ". DOWN_STATS_TABLE . " SET st_count = st_count + $1,
+        st_modified = NOW()
+        WHERE st_lang = $2";
+    $update_res = pg_prepare( $pg, "set_count", $update_sql );
+    $update_res = pg_execute( $pg, "set_count", array($in_count, $in_lang) );
+    if($e = pg_last_error()) die($e);
+    
+    if ( !pg_affected_rows($update_res) ) {
+        $ins_sql = "INSERT INTO ". DOWN_STATS_TABLE . " 
+        (st_lang, st_count, st_modified)
+        VALUES ($1, $2, NOW() )";
+        $ins_res = pg_prepare( $pg, "ins_count", $ins_sql );
+        $ins_res = pg_execute( $pg, "ins_count", array($in_lang, $in_count) );
+        if($e = pg_last_error()) die($e);
+    }
+    
     return;
 }
 
