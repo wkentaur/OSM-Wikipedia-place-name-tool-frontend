@@ -22,7 +22,7 @@ require_once('/home/kentaur/php/osm_wp/phposm.class.php');
 function update_download_stats($in_lang, $in_count) {
     $update_sql = "UPDATE ". DOWN_STATS_TABLE . " SET st_count = st_count + ". $in_count .",
         st_modified = NOW()
-        WHERE st_lang = '". pg_escape_string(in_lang) ."'";
+        WHERE st_lang = '". pg_escape_string($in_lang) ."'";
     $update_res = pg_query($update_sql);
     if($e = pg_last_error()) die($e);
 
