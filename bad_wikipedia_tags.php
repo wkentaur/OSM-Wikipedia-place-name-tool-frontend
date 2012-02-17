@@ -91,6 +91,7 @@ print "<TABLE>\n";
   <TH>edit</TH>
   <TH></TH>
   <TH>malformed wikipedia tag/page not found in wikipedia</TH>
+  <TH>fixme value</TH>
 </TR>";
 
 while($row = pg_fetch_assoc($res))
@@ -118,11 +119,23 @@ while($row = pg_fetch_assoc($res))
         $wiki_url = 'http://'. $row['wiki_lang'] . $wiki_site . $row['wiki_art_title'];
     $edit_url = 'http://www.openstreetmap.org/edit?'. $obj_type . '=' . $row['osm_id'];
 
+    $osm_sql = "SELECT  tags->'fixme' AS fixme
+        FROM ". $row['osm_table'] ." 
+        WHERE (osm_id = '". pg_escape_string( $row['osm_id'] ) ."')
+        LIMIT 1";
+        $osm_res = pg_query($osm_sql);
+    if($e = pg_last_error()) trigger_error($e, E_USER_ERROR);
+    $fixme = '';
+    if ($osm_row = pg_fetch_assoc($osm_res)) {
+        $fixme = $osm_row['fixme'];
+    }
+    
     print '<TR>';
         print '<TD><A HREF="'. $osm_url . abs($row['osm_id']) . '">'. $row['osm_id'] ."</A></TD>\n";
         print '<TD><A HREF="'. $edit_url . '">edit</A></TD>' . "\n";
         print "<TD>". $row['wiki_lang'] ."</TD>\n";
         print '<TD> <A HREF="'. $wiki_url . '">' . $row['osm_wikipedia'] ."</A> </TD>\n";
+        print "<TD>". $fixme ."</TD>\n";
     print "</TR>\n";
     
 
