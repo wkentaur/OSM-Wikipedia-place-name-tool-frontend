@@ -219,7 +219,7 @@ if ($lang) {
         print "<TD>". $row['wiki_lang'] ."</TD>\n";
         print '<TD> <A HREF="'. $wiki_url . '">' . $row['wiki_art_title'] ."</A> </TD>\n";
 
-        $name_field = "tags->'name:" . $lang . "' AS ". $lang;
+        $name_field = "tags->'name:" . $lang . "' AS \"". $lang . '"';
         $osm_table = $row['osm_table'];
         $osm_id = $row['osm_id'];
         $osm_sql = "SELECT  name, tags->'route_name' AS route_name, $name_field
